@@ -1,0 +1,233 @@
+/* ================================================================
+   The Academic Assessment AI  --  style.css
+   Palette:  White (#FFFFFF), Slate Grey (#3E4C59), Academic Blue (#1A56DB)
+   ================================================================ */
+
+/* ── Reset & Base ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    --white:   #FFFFFF;
+    --slate:   #3E4C59;
+    --blue:    #1A56DB;
+    --blue-light: #E8EEFB;
+    --blue-dark:  #133EA8;
+    --grey-50:  #F8F9FA;
+    --grey-100: #EEF0F2;
+    --grey-200: #D5D9DE;
+    --grey-600: #6B7280;
+    --red:      #DC2626;
+    --red-light:#FEF2F2;
+    --green:    #16A34A;
+    --green-light: #F0FDF4;
+    --amber:    #D97706;
+    --amber-light: #FFFBEB;
+    --radius:   8px;
+    --shadow:   0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
+    --shadow-lg:0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -4px rgba(0,0,0,.1);
+}
+
+html { font-size: 16px; scroll-behavior: smooth; }
+body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    color: var(--slate);
+    background: var(--grey-50);
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── Header ───────────────────────────────────────────────────── */
+.app-header {
+    background: var(--blue);
+    color: var(--white);
+    padding: 2rem 1.5rem 1.6rem;
+    text-align: center;
+}
+.app-header h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -.02em; }
+.app-header .subtitle { font-size: .9rem; opacity: .85; margin-top: .25rem; }
+
+/* ── Container ────────────────────────────────────────────────── */
+.container { max-width: 1140px; margin: 0 auto; padding: 2rem 1.25rem 3rem; flex: 1; }
+
+/* ── Mode Toggle ──────────────────────────────────────────────── */
+.mode-toggle { display: flex; justify-content: flex-end; margin-bottom: 1.25rem; }
+.toggle-label {
+    display: flex; align-items: center; gap: .6rem;
+    cursor: pointer; user-select: none; font-size: .9rem;
+}
+.toggle-label input { display: none; }
+.toggle-switch {
+    width: 42px; height: 24px; background: var(--grey-200); border-radius: 12px;
+    position: relative; transition: background .2s;
+}
+.toggle-switch::after {
+    content: ""; position: absolute; top: 3px; left: 3px;
+    width: 18px; height: 18px; background: var(--white); border-radius: 50%;
+    transition: transform .2s;
+}
+.toggle-label input:checked + .toggle-switch { background: var(--blue); }
+.toggle-label input:checked + .toggle-switch::after { transform: translateX(18px); }
+.toggle-text small { color: var(--grey-600); }
+
+/* ── Buckets (3-column grid) ──────────────────────────────────── */
+.buckets {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem; margin-bottom: 2rem;
+}
+.bucket {
+    background: var(--white); border: 1px solid var(--grey-200);
+    border-radius: var(--radius); padding: 1.5rem;
+    box-shadow: var(--shadow); display: flex; flex-direction: column; gap: .75rem;
+}
+.bucket-title { font-size: 1rem; font-weight: 600; color: var(--blue); }
+.bucket-desc  { font-size: .82rem; color: var(--grey-600); }
+
+/* ── File input ───────────────────────────────────────────────── */
+.file-input-label {
+    display: flex; align-items: center; gap: .5rem;
+    padding: .65rem 1rem; border: 2px dashed var(--grey-200); border-radius: var(--radius);
+    cursor: pointer; transition: border-color .2s, background .2s;
+    font-size: .88rem;
+}
+.file-input-label:hover { border-color: var(--blue); background: var(--blue-light); }
+.file-input-label input[type="file"] { display: none; }
+.file-input-icon { font-size: 1.25rem; }
+.file-name {
+    font-size: .8rem; color: var(--grey-600); min-height: 1.2rem;
+    word-break: break-all;
+}
+
+/* ── Textarea ─────────────────────────────────────────────────── */
+.textarea-label {
+    display: block; font-size: .85rem; font-weight: 600; margin-top: .5rem;
+}
+#furtherInstructions {
+    width: 100%; min-height: 120px; resize: vertical;
+    border: 1px solid var(--grey-200); border-radius: var(--radius);
+    padding: .75rem; font-size: .88rem; font-family: inherit;
+    line-height: 1.5; color: var(--slate);
+    transition: border-color .2s;
+}
+#furtherInstructions:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,86,219,.15); }
+
+/* ── Action Area ──────────────────────────────────────────────── */
+.action-area { text-align: center; margin-bottom: 2.5rem; }
+.btn-primary {
+    display: inline-block; padding: .8rem 2.5rem;
+    background: var(--blue); color: var(--white); font-size: 1rem; font-weight: 600;
+    border: none; border-radius: var(--radius); cursor: pointer;
+    transition: background .2s, transform .1s;
+}
+.btn-primary:hover:not(:disabled) { background: var(--blue-dark); }
+.btn-primary:active:not(:disabled) { transform: scale(.98); }
+.btn-primary:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ── Progress Bar ─────────────────────────────────────────────── */
+.progress-wrapper { margin-top: 1.25rem; }
+.progress-bar {
+    width: 100%; max-width: 500px; height: 14px; margin: 0 auto;
+    background: var(--grey-100); border-radius: 7px; overflow: hidden;
+}
+.progress-fill {
+    height: 100%; width: 0%; background: var(--blue);
+    border-radius: 7px; transition: width .4s ease;
+}
+.progress-text { font-size: .85rem; color: var(--grey-600); margin-top: .4rem; }
+
+/* ── Results Container ────────────────────────────────────────── */
+.results-container { display: flex; flex-direction: column; gap: 2rem; }
+
+/* ── Feedback Card ────────────────────────────────────────────── */
+.feedback-card {
+    background: var(--white); border: 1px solid var(--grey-200);
+    border-radius: var(--radius); box-shadow: var(--shadow-lg);
+    overflow: hidden;
+}
+.card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--grey-100);
+    flex-wrap: wrap; gap: .75rem;
+}
+.card-student { font-weight: 600; font-size: 1.05rem; }
+.card-mark {
+    font-size: 2rem; font-weight: 800; line-height: 1;
+}
+.grade-badge {
+    display: inline-block; padding: .3rem .9rem; border-radius: 20px;
+    font-size: .82rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em;
+}
+.grade-distinction { background: var(--green-light); color: var(--green); }
+.grade-merit       { background: var(--amber-light); color: var(--amber); }
+.grade-pass        { background: var(--blue-light);  color: var(--blue); }
+.grade-fail        { background: var(--red-light);   color: var(--red); }
+
+.card-body { padding: 1.5rem; }
+
+/* WWW / EBI sections */
+.feedback-section { margin-bottom: 1.5rem; }
+.feedback-section h3 {
+    font-size: .9rem; text-transform: uppercase; letter-spacing: .05em;
+    margin-bottom: .5rem; color: var(--blue);
+}
+.feedback-section ul { padding-left: 1.25rem; }
+.feedback-section li { font-size: .88rem; margin-bottom: .35rem; }
+.feedback-section p  { font-size: .88rem; }
+
+/* Rubric Alignment Table */
+.rubric-table { width: 100%; border-collapse: collapse; font-size: .84rem; margin-top: .5rem; }
+.rubric-table th, .rubric-table td {
+    text-align: left; padding: .6rem .75rem;
+    border-bottom: 1px solid var(--grey-100);
+    vertical-align: top;
+}
+.rubric-table th {
+    background: var(--grey-50); font-weight: 600; position: sticky; top: 0;
+    white-space: nowrap;
+}
+.rubric-table tr:last-child td { border-bottom: none; }
+
+.score-cell { font-weight: 700; white-space: nowrap; }
+.score-high  { color: var(--green); }
+.score-mid   { color: var(--amber); }
+.score-zero  { color: var(--red); }
+
+.evidence-cell { font-style: italic; color: var(--grey-600); }
+
+/* Download button */
+.card-footer {
+    padding: .75rem 1.5rem; border-top: 1px solid var(--grey-100);
+    display: flex; justify-content: flex-end;
+}
+.btn-download {
+    padding: .45rem 1.1rem; font-size: .82rem; font-weight: 600;
+    background: var(--grey-50); border: 1px solid var(--grey-200);
+    border-radius: var(--radius); cursor: pointer; transition: background .2s;
+}
+.btn-download:hover { background: var(--grey-100); }
+
+/* ── Error card ───────────────────────────────────────────────── */
+.error-card {
+    background: var(--red-light); border: 1px solid var(--red);
+    border-radius: var(--radius); padding: 1.25rem 1.5rem;
+}
+.error-card h3 { color: var(--red); margin-bottom: .35rem; }
+.error-card p  { font-size: .88rem; }
+
+/* ── Footer ───────────────────────────────────────────────────── */
+.app-footer {
+    text-align: center; padding: 1.25rem; font-size: .8rem;
+    color: var(--grey-600); border-top: 1px solid var(--grey-100);
+}
+
+/* ── Responsive ───────────────────────────────────────────────── */
+@media (max-width: 900px) {
+    .buckets { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+    .app-header h1 { font-size: 1.3rem; }
+    .card-header { flex-direction: column; align-items: flex-start; }
+    .rubric-table { font-size: .78rem; }
+    .rubric-table th, .rubric-table td { padding: .45rem .5rem; }
+}

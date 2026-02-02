@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Academic Assessment AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<!-- ───────────────────────── Header ───────────────────────── -->
+<header class="app-header">
+    <div class="header-inner">
+        <h1>The Academic Assessment AI</h1>
+        <p class="subtitle">Critical Pedagogical Auditor &middot; External Quality Assurance</p>
+    </div>
+</header>
+
+<!-- ───────────────────────── Main ─────────────────────────── -->
+<main class="container">
+
+    <!-- Mode Toggle -->
+    <div class="mode-toggle">
+        <label class="toggle-label" for="mockToggle">
+            <input type="checkbox" id="mockToggle" checked>
+            <span class="toggle-switch"></span>
+            <span class="toggle-text">Mock Mode <small>(uncheck to use Claude API)</small></span>
+        </label>
+    </div>
+
+    <!-- ── Three-Bucket Upload Area ── -->
+    <section class="buckets">
+
+        <!-- Bucket A: Assignment Brief -->
+        <div class="bucket" id="bucketA">
+            <h2 class="bucket-title">A &mdash; Assignment Brief</h2>
+            <p class="bucket-desc">Upload the assignment brief document.</p>
+            <label class="file-input-label" for="briefFile">
+                <span class="file-input-icon">&#128196;</span>
+                <span class="file-input-text">Choose file&hellip;</span>
+                <input type="file" id="briefFile"
+                       accept=".pdf,.docx,.pptx,.odt,.txt,.png,.jpg,.jpeg">
+            </label>
+            <span class="file-name" id="briefFileName"></span>
+        </div>
+
+        <!-- Bucket B: Rubric + Further Instructions -->
+        <div class="bucket" id="bucketB">
+            <h2 class="bucket-title">B &mdash; Grading Criteria</h2>
+            <p class="bucket-desc">Upload the rubric and add any lecturer notes.</p>
+            <label class="file-input-label" for="rubricFile">
+                <span class="file-input-icon">&#128203;</span>
+                <span class="file-input-text">Choose rubric&hellip;</span>
+                <input type="file" id="rubricFile"
+                       accept=".pdf,.docx,.pptx,.odt,.txt,.png,.jpg,.jpeg">
+            </label>
+            <span class="file-name" id="rubricFileName"></span>
+
+            <label class="textarea-label" for="furtherInstructions">
+                Further Instructions / Specific Focus
+            </label>
+            <textarea id="furtherInstructions" rows="6"
+                      placeholder="e.g. Only assess Task 1a and 1b. Ignore the appendix. Student has approved extra time."></textarea>
+        </div>
+
+        <!-- Bucket C: Student Submissions -->
+        <div class="bucket" id="bucketC">
+            <h2 class="bucket-title">C &mdash; Student Submissions</h2>
+            <p class="bucket-desc">Upload one or more student files for batch grading.</p>
+            <label class="file-input-label" for="studentFiles">
+                <span class="file-input-icon">&#128218;</span>
+                <span class="file-input-text">Choose files&hellip;</span>
+                <input type="file" id="studentFiles" multiple
+                       accept=".pdf,.docx,.pptx,.odt,.txt,.png,.jpg,.jpeg">
+            </label>
+            <span class="file-name" id="studentFileNames"></span>
+        </div>
+    </section>
+
+    <!-- ── Action Area ── -->
+    <section class="action-area">
+        <button id="startBtn" class="btn-primary" disabled>Start Batch Assessment</button>
+
+        <div class="progress-wrapper" id="progressWrapper" style="display:none;">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <p class="progress-text" id="progressText">0 / 0 assessed</p>
+        </div>
+    </section>
+
+    <!-- ── Results ── -->
+    <section id="results-container" class="results-container"></section>
+
+</main>
+
+<!-- ───────────────────────── Footer ───────────────────────── -->
+<footer class="app-footer">
+    <p>&copy; 2026 The Academic Assessment AI &middot; Built for educators.</p>
+</footer>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
