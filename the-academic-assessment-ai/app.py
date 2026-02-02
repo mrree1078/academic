@@ -38,9 +38,9 @@ except ImportError:
     pytesseract = None
 
 try:
-    from openai import OpenAI
+    import anthropic
 except ImportError:
-    OpenAI = None
+    anthropic = None
 
 # ---------------------------------------------------------------------------
 # Flask application
@@ -274,26 +274,21 @@ def mock_llm_response(student_name: str) -> dict:
 
 def call_llm(brief_text: str, rubric_text: str,
              student_text: str, further_instructions: str) -> dict:
-    """Send the assessment payload to the configured LLM and parse JSON."""
+    """Send the assessment payload to Claude via the Anthropic API."""
 
-    api_key = os.environ.get("OPENAI_API_KEY", "")
-    api_base = os.environ.get("OPENAI_API_BASE", None)
-    model = os.environ.get("LLM_MODEL", "gpt-4o")
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    model = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-20250514")
 
     if not api_key:
         raise RuntimeError(
-            "No OPENAI_API_KEY found in environment. "
+            "No ANTHROPIC_API_KEY found in environment. "
             "Use Mock Mode or set the key."
         )
 
-    if OpenAI is None:
-        raise RuntimeError("openai Python package is not installed.")
+    if anthropic is None:
+        raise RuntimeError("anthropic Python package is not installed.")
 
-    client_kwargs: dict = {"api_key": api_key}
-    if api_base:
-        client_kwargs["base_url"] = api_base
-
-    client = OpenAI(**client_kwargs)
+    client = anthropic.Anthropic(api_key=api_key)
 
     user_message = (
         "<assignment_brief>\n"
@@ -310,17 +305,17 @@ def call_llm(brief_text: str, rubric_text: str,
         "</student_submission>"
     )
 
-    response = client.chat.completions.create(
+    response = client.messages.create(
         model=model,
+        max_tokens=4096,
+        temperature=0.2,
+        system=SYSTEM_PROMPT,
         messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_message},
         ],
-        temperature=0.2,
-        max_tokens=4096,
     )
 
-    raw = response.choices[0].message.content.strip()
+    raw = response.content[0].text.strip()
 
     # Strip markdown code fences if the model wraps its output
     if raw.startswith("```"):
