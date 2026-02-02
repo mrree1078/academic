@@ -1,0 +1,5 @@
+{
+  "name": "The Academic Assessment AI",
+  "description": "A professional academic grading assistant that leverages Gemini to assess student submissions against rubrics and assignment briefs using a strict pedagogical framework.",
+  "requestFramePermissions": []
+}
