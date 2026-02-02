@@ -62,9 +62,18 @@ You are an expert Academic Assessment AI, specialized in Level 3 (BTEC/T-Level) 
 Phase 1: Context & Input Isolation
 - Analyze the Assignment Brief and the Rubric (The 'Gold Standard').
 - Incorporate 'Further Instructions' provided by the lecturer (e.g., 'focus on task 1a').
+- If the Further Instructions specify particular tasks (e.g., 'only assess Task 1a and 2b'), you must ONLY assess the rubric criteria that relate to those tasks. Ignore criteria for tasks not selected.
+- If no task filter is given, assess ALL criteria found in the rubric.
 - Isolate the <student_submission> content. Do NOT conflate the requirements of the Brief with the actual content of the Submission.
 
-Phase 2: The Grading Framework & "Quote or Zero" Protocol
+Phase 2: Rubric Extraction (CRITICAL)
+- Before grading, you MUST first parse the <rubric> document and extract EVERY assessment criterion exactly as written.
+- Extract the exact criterion name/ID (e.g., "P1", "M1", "D1", "Task 1a", "LO1.1"), its description, and its available marks or grade band exactly as stated in the rubric.
+- Use the rubric's OWN marking scheme. If the rubric uses Pass/Merit/Distinction bands, use those. If it uses numerical marks (e.g., /10, /20), use those numbers. If it uses both, capture both.
+- Do NOT invent, rename, merge, or paraphrase criteria. Use them EXACTLY as they appear in the rubric.
+- The rubricAlignment array in your output must contain ONE entry per rubric criterion (filtered by task if Further Instructions specify). No more, no less.
+
+Phase 3: The Grading Framework & "Quote or Zero" Protocol
 - Bloom's Taxonomy: Lower Tier (Recall/Understand) = Pass/Merit. Higher Tier (Analyze/Evaluate/Create) = Distinction.
 - The 70% Threshold: Distinction requires explicit critical analysis ('Why' & 'How'), contextual depth, and synthesis.
 - Strictness: Start from 0. Only award marks if explicit evidence is found.
@@ -72,27 +81,27 @@ Phase 2: The Grading Framework & "Quote or Zero" Protocol
 - Evidence Lock: Do not use outside knowledge. Strictly adhere to the provided documents.
 - SPaG: Check for Spelling, Punctuation, and Grammar. However, if the student indicates dyslexia (or if the quality of argument is high but spelling is poor), be lenient on spelling but strict on grammar and structure.
 
-Phase 3: Mathematical Scoring
-- Extract the scoring system from the Rubric.
-- List every single criterion found in the rubric.
+Phase 4: Mathematical Scoring
+- Use the marking scheme from the rubric exactly. If a criterion is worth 10 marks, the maxScore is 10. If criteria use Pass/Merit/Distinction bands without numbers, map them as: Not Achieved = 0, Pass = 1, Merit = 2, Distinction = 3.
 - Assign a numerical score to each criterion based on evidence found.
-- Sum the total marks mathematically. Do not guess the total.
+- Sum the total marks mathematically. Calculate the percentage: (total scored / total available) * 100. Do not guess the total.
+- Derive the grade from the rubric's own grade boundaries if provided. Otherwise use: 0-39 = Fail, 40-54 = Pass, 55-69 = Merit, 70-100 = Distinction.
 
-Phase 4: Feedback Output Structure
+Phase 5: Feedback Output Structure
 Return the response in **strict JSON** format ONLY. Do not include any text outside the JSON object. Use the following schema:
 {
-  "mark": (Integer 0-100),
+  "mark": (Integer 0-100: the calculated percentage),
   "grade": (String, e.g., "Distinction", "Merit", "Pass", "Fail"),
-  "www": (Array of Strings: Specific strengths linked to the rubric),
-  "ebi": (Array of Strings: Constructive criticism focused on how to move to the next grade band),
+  "www": (Array of Strings: Specific strengths, each referencing the rubric criterion ID it relates to),
+  "ebi": (Array of Strings: Constructive criticism, each referencing the rubric criterion ID and what is needed for the next grade band),
   "feedForward": (String: Actionable steps for future assignments),
   "rubricAlignment": [
     {
-      "criterion": (String: The specific rubric point),
-      "score": (Integer: Marks awarded for this point),
-      "maxScore": (Integer: Maximum marks available for this point),
-      "evidenceFound": (String: Direct quote or 'No evidence found'),
-      "criticalReasoning": (String: Why the mark was given/denied)
+      "criterion": (String: The EXACT criterion ID and name as written in the rubric, e.g., "P1: Explain key concepts of IT"),
+      "score": (Integer: Marks awarded for this criterion),
+      "maxScore": (Integer: Maximum marks available as stated in the rubric),
+      "evidenceFound": (String: Direct quote from the student submission, or 'No evidence found'),
+      "criticalReasoning": (String: Why the mark was given/denied, referencing what the rubric requires vs what the student provided)
     }
   ]
 }
@@ -183,31 +192,36 @@ def _save_temp(file_storage) -> str:
 # ---------------------------------------------------------------------------
 
 def mock_llm_response(student_name: str) -> dict:
-    """Return realistic dummy assessment data."""
+    """Return realistic dummy assessment data mirroring rubric-driven output."""
     return {
-        "mark": 54,
-        "grade": "Merit",
+        "mark": 47,
+        "grade": "Pass",
         "www": [
-            "The submission demonstrates a clear understanding of the core terminology "
-            "as outlined in criterion 1.1.",
-            "Appropriate use of examples when discussing data protection principles.",
-            "Logical structure with clear headings that mirror the brief requirements.",
+            "P1: Clear definitions provided for key IT concepts including hardware, "
+            "software, and networking fundamentals.",
+            "P2: GDPR is identified and its purpose is stated correctly.",
+            "M1: Some valid examples of IT use in business are provided, showing "
+            "understanding beyond basic recall.",
         ],
         "ebi": [
-            "Critical analysis is surface-level. To achieve Distinction, you must explain "
-            "'why' and 'how' rather than simply describing concepts.",
-            "No evidence found for criterion 2.3 (impact of emerging technologies). "
-            "This entire section is missing from your submission.",
-            "Referencing is inconsistent -- several claims lack in-text citations.",
+            "P3: No evidence found for this criterion. You must discuss network "
+            "topologies as required by the rubric to achieve a Pass.",
+            "M2: To move from Pass to Merit, you need to compare different data "
+            "protection laws rather than just listing them.",
+            "D1: No critical analysis present. Distinction requires you to evaluate "
+            "'why' and 'how' IT impacts organisations with real-world case studies.",
+            "D2: No synthesis of emerging technologies. You must argue a position "
+            "using multiple sources to reach Distinction.",
         ],
         "feedForward": (
-            "For your next assignment, begin by mapping each rubric criterion to a "
-            "dedicated section in your work. Use the PEE (Point, Evidence, Explain) "
-            "chain to ensure every paragraph contains analysis, not just description."
+            "Map each rubric criterion (P1, P2, M1, D1, etc.) to a dedicated "
+            "section in your work. For Pass criteria, describe and define. For "
+            "Merit, compare and explain. For Distinction, evaluate and justify. "
+            "Use the PEE (Point, Evidence, Explain) chain in every paragraph."
         ),
         "rubricAlignment": [
             {
-                "criterion": "1.1 Explain key concepts of IT",
+                "criterion": "P1: Explain key concepts of information technology",
                 "score": 8,
                 "maxScore": 10,
                 "evidenceFound": (
@@ -215,12 +229,14 @@ def mock_llm_response(student_name: str) -> dict:
                     "telecommunications to store, retrieve, and send information.\""
                 ),
                 "criticalReasoning": (
-                    "The student provides a clear definition but does not extend "
-                    "this into a contextual discussion of modern IT paradigms."
+                    "Rubric requires explanation of key IT concepts. The student "
+                    "provides clear definitions of hardware, software, and "
+                    "networking but does not cover all sub-topics listed in the "
+                    "rubric (operating systems omitted). 8/10 awarded."
                 ),
             },
             {
-                "criterion": "1.2 Discuss data protection legislation",
+                "criterion": "P2: Outline the principles of data protection legislation",
                 "score": 6,
                 "maxScore": 10,
                 "evidenceFound": (
@@ -228,40 +244,68 @@ def mock_llm_response(student_name: str) -> dict:
                     "of EU citizens.\""
                 ),
                 "criticalReasoning": (
-                    "Mentions GDPR but fails to analyse its practical implications "
-                    "for organisations. No mention of the Data Protection Act 2018."
+                    "Rubric requires outlining data protection principles. Student "
+                    "identifies GDPR but does not mention the Data Protection Act "
+                    "2018 or the role of the ICO, both listed in the rubric. 6/10."
                 ),
             },
             {
-                "criterion": "2.1 Analyze the impact of IT on business",
-                "score": 5,
+                "criterion": "P3: Describe network topologies and protocols",
+                "score": 0,
+                "maxScore": 10,
+                "evidenceFound": "No evidence found",
+                "criticalReasoning": (
+                    "Rubric requires description of network topologies (star, mesh, "
+                    "bus) and protocols (TCP/IP, HTTP). The student submission "
+                    "contains no discussion of this topic. 0/10 awarded."
+                ),
+            },
+            {
+                "criterion": "M1: Explain how IT supports business operations",
+                "score": 7,
                 "maxScore": 15,
                 "evidenceFound": (
-                    "\"IT helps businesses run more efficiently.\""
+                    "\"Businesses use cloud computing and email systems to "
+                    "improve daily operations and communication.\""
                 ),
                 "criticalReasoning": (
-                    "This is a vague, unsupported claim. No specific examples or "
-                    "case studies are provided. Analysis is absent."
+                    "Rubric requires explanation with examples. Student gives "
+                    "valid examples (cloud, email) but explanation is shallow -- "
+                    "does not explain HOW these improve operations in detail. "
+                    "Partial Merit level. 7/15."
                 ),
             },
             {
-                "criterion": "2.3 Evaluate emerging technologies",
+                "criterion": "M2: Compare data protection approaches across sectors",
                 "score": 0,
                 "maxScore": 15,
                 "evidenceFound": "No evidence found",
                 "criticalReasoning": (
-                    "The student submission contains no discussion of emerging "
-                    "technologies whatsoever. Full marks withheld."
+                    "Rubric requires comparison across sectors (healthcare, finance, "
+                    "education). No comparative analysis found in submission. 0/15."
                 ),
             },
             {
-                "criterion": "3.1 Present work with academic conventions",
-                "score": 5,
-                "maxScore": 10,
-                "evidenceFound": "N/A -- holistic criterion",
+                "criterion": "D1: Evaluate the impact of IT on a named organisation",
+                "score": 0,
+                "maxScore": 20,
+                "evidenceFound": "No evidence found",
                 "criticalReasoning": (
-                    "Headings are present but referencing is inconsistent. "
-                    "Harvard style attempted but not applied uniformly."
+                    "Rubric requires critical evaluation with a named case study. "
+                    "Student provides only generic statements ('IT helps businesses "
+                    "run more efficiently') with no named organisation, no sources, "
+                    "and no evaluative argument. 0/20 awarded."
+                ),
+            },
+            {
+                "criterion": "D2: Evaluate emerging technologies and their future impact",
+                "score": 0,
+                "maxScore": 20,
+                "evidenceFound": "No evidence found",
+                "criticalReasoning": (
+                    "Rubric requires evaluation of emerging technologies (AI, IoT, "
+                    "blockchain) with synthesised argument. No discussion found "
+                    "in the student submission whatsoever. 0/20 awarded."
                 ),
             },
         ],
