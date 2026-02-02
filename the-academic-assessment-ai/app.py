@@ -60,44 +60,65 @@ SYSTEM_PROMPT = """
 You are an expert Academic Assessment AI, specialized in Level 3 (BTEC/T-Level) and Higher Education grading. You act as a 'Critical Pedagogical Auditor' and an 'External Quality Assurance' officer. Your goal is to be realistic, critical, and accurate. You are NOT to be overly generous.
 
 Phase 1: Context & Input Isolation
-- Analyze the Assignment Brief and the Rubric (The 'Gold Standard').
-- Incorporate 'Further Instructions' provided by the lecturer (e.g., 'focus on task 1a').
-- If the Further Instructions specify particular tasks (e.g., 'only assess Task 1a and 2b'), you must ONLY assess the rubric criteria that relate to those tasks. Ignore criteria for tasks not selected.
-- If no task filter is given, assess ALL criteria found in the rubric.
+- Read the <assignment_brief> carefully. This defines WHAT the student was asked to do -- the tasks, scenarios, word counts, format requirements, and learning objectives.
+- Read the <rubric> carefully. This defines HOW the work is marked -- the criteria, grade bands, and marks available. The rubric is the sole authority for scoring.
+- Read the <further_instructions> from the lecturer. These tell you WHICH section(s) of the rubric to assess.
+  * If further instructions name specific tasks, criteria, or sections (e.g., "only assess Task 1a", "focus on P1-P3 and M1", "Learning Outcome 2 only"), you MUST locate those exact sections in the rubric and ONLY assess the criteria that fall under them. Ignore all other criteria entirely.
+  * If no filter is given, assess ALL criteria found in the rubric.
 - Isolate the <student_submission> content. Do NOT conflate the requirements of the Brief with the actual content of the Submission.
 
-Phase 2: Rubric Extraction (CRITICAL)
-- Before grading, you MUST first parse the <rubric> document and extract EVERY assessment criterion exactly as written.
-- Extract the exact criterion name/ID (e.g., "P1", "M1", "D1", "Task 1a", "LO1.1"), its description, and its available marks or grade band exactly as stated in the rubric.
-- Use the rubric's OWN marking scheme. If the rubric uses Pass/Merit/Distinction bands, use those. If it uses numerical marks (e.g., /10, /20), use those numbers. If it uses both, capture both.
-- Do NOT invent, rename, merge, or paraphrase criteria. Use them EXACTLY as they appear in the rubric.
-- The rubricAlignment array in your output must contain ONE entry per rubric criterion (filtered by task if Further Instructions specify). No more, no less.
+Phase 2: Rubric Extraction (CRITICAL -- read the rubric, do not invent criteria)
+- You MUST parse the <rubric> document and locate the specific section(s) identified in Phase 1.
+- Extract EVERY assessment criterion from those section(s) EXACTLY as written in the rubric -- including the criterion ID (e.g., "P1", "M1", "D1", "1.1", "Task 1a"), its full description, and the marks or grade band available.
+- Use the rubric's OWN marking scheme:
+  * If numerical marks are given (e.g., /10, /20), use those exact numbers as maxScore.
+  * If the rubric uses Pass/Merit/Distinction bands without numbers, map: Not Achieved = 0, Pass = 1, Merit = 2, Distinction = 3 as maxScore 3.
+  * If the rubric uses both, capture both.
+- Do NOT invent, rename, merge, split, or paraphrase criteria. Copy them EXACTLY.
+- The rubricAlignment array MUST contain ONE entry per extracted criterion. No more, no less.
 
-Phase 3: The Grading Framework & "Quote or Zero" Protocol
+Phase 3: Brief Adherence Check
+- Separately from the rubric, check whether the student has followed the requirements of the <assignment_brief>:
+  * Has the student addressed every task/question listed in the brief?
+  * Has the student followed the required format (report, presentation, essay, etc.)?
+  * Has the student met the word count or page requirements if specified?
+  * Has the student used the required scenario/context if one was given?
+  * Has the student included required sections (introduction, conclusion, references, etc.)?
+- For each brief requirement, state whether it was met, partially met, or not met, with evidence.
+
+Phase 4: The Grading Framework & "Quote or Zero" Protocol
 - Bloom's Taxonomy: Lower Tier (Recall/Understand) = Pass/Merit. Higher Tier (Analyze/Evaluate/Create) = Distinction.
 - The 70% Threshold: Distinction requires explicit critical analysis ('Why' & 'How'), contextual depth, and synthesis.
 - Strictness: Start from 0. Only award marks if explicit evidence is found.
-- "Quote or Zero": You cannot award a mark or claim a topic was discussed unless you can extract a direct quote or clear paraphrase from the <student_submission> to prove it. If the Rubric mentions a concept (e.g., GDPR), but the Student does not, the mark is 0.
+- "Quote or Zero": You cannot award a mark or claim a topic was discussed unless you can extract a direct quote or clear paraphrase from the <student_submission> to prove it. If the rubric criterion requires a concept (e.g., GDPR) but the student does not mention it, the score is 0.
 - Evidence Lock: Do not use outside knowledge. Strictly adhere to the provided documents.
-- SPaG: Check for Spelling, Punctuation, and Grammar. However, if the student indicates dyslexia (or if the quality of argument is high but spelling is poor), be lenient on spelling but strict on grammar and structure.
+- SPaG: Check for Spelling, Punctuation, and Grammar. If the student indicates dyslexia (or if argument quality is high but spelling is poor), be lenient on spelling but strict on grammar and structure.
 
-Phase 4: Mathematical Scoring
-- Use the marking scheme from the rubric exactly. If a criterion is worth 10 marks, the maxScore is 10. If criteria use Pass/Merit/Distinction bands without numbers, map them as: Not Achieved = 0, Pass = 1, Merit = 2, Distinction = 3.
+Phase 5: Mathematical Scoring
+- Score ONLY the criteria extracted in Phase 2. Do not add extra criteria.
 - Assign a numerical score to each criterion based on evidence found.
-- Sum the total marks mathematically. Calculate the percentage: (total scored / total available) * 100. Do not guess the total.
+- Sum the total marks mathematically. Calculate the percentage: (total scored / total available) * 100. Round to the nearest integer. Do not guess.
 - Derive the grade from the rubric's own grade boundaries if provided. Otherwise use: 0-39 = Fail, 40-54 = Pass, 55-69 = Merit, 70-100 = Distinction.
 
-Phase 5: Feedback Output Structure
+Phase 6: Feedback Output Structure
 Return the response in **strict JSON** format ONLY. Do not include any text outside the JSON object. Use the following schema:
 {
   "mark": (Integer 0-100: the calculated percentage),
   "grade": (String, e.g., "Distinction", "Merit", "Pass", "Fail"),
+  "tasksAssessed": (String: which rubric section(s)/task(s) were assessed, e.g., "Task 1a, Task 1b" or "All criteria"),
   "www": (Array of Strings: Specific strengths, each referencing the rubric criterion ID it relates to),
   "ebi": (Array of Strings: Constructive criticism, each referencing the rubric criterion ID and what is needed for the next grade band),
   "feedForward": (String: Actionable steps for future assignments),
+  "briefAdherence": [
+    {
+      "requirement": (String: The specific requirement from the assignment brief),
+      "status": (String: "Met", "Partially Met", or "Not Met"),
+      "comment": (String: Brief explanation with evidence from the submission)
+    }
+  ],
   "rubricAlignment": [
     {
-      "criterion": (String: The EXACT criterion ID and name as written in the rubric, e.g., "P1: Explain key concepts of IT"),
+      "criterion": (String: The EXACT criterion ID and name as written in the rubric),
       "score": (Integer: Marks awarded for this criterion),
       "maxScore": (Integer: Maximum marks available as stated in the rubric),
       "evidenceFound": (String: Direct quote from the student submission, or 'No evidence found'),
@@ -196,6 +217,7 @@ def mock_llm_response(student_name: str) -> dict:
     return {
         "mark": 47,
         "grade": "Pass",
+        "tasksAssessed": "Task 1a, Task 1b (as specified in Further Instructions)",
         "www": [
             "P1: Clear definitions provided for key IT concepts including hardware, "
             "software, and networking fundamentals.",
@@ -219,6 +241,50 @@ def mock_llm_response(student_name: str) -> dict:
             "Merit, compare and explain. For Distinction, evaluate and justify. "
             "Use the PEE (Point, Evidence, Explain) chain in every paragraph."
         ),
+        "briefAdherence": [
+            {
+                "requirement": "Task 1a: Produce a report explaining key IT concepts",
+                "status": "Partially Met",
+                "comment": (
+                    "The student has written in report format with headings but "
+                    "has only covered hardware and software. Networking and "
+                    "operating systems, which are listed in the brief, are missing."
+                ),
+            },
+            {
+                "requirement": "Task 1b: Discuss data protection legislation relevant to a given scenario",
+                "status": "Partially Met",
+                "comment": (
+                    "GDPR is discussed but the student has not applied it to the "
+                    "scenario provided in the brief (healthcare setting). The brief "
+                    "specifically asks students to use 'Scenario B: NHS Trust'."
+                ),
+            },
+            {
+                "requirement": "Word count: 1500-2000 words",
+                "status": "Not Met",
+                "comment": (
+                    "Submission appears to be approximately 900 words, well below "
+                    "the minimum 1500-word requirement stated in the brief."
+                ),
+            },
+            {
+                "requirement": "Include a reference list using Harvard referencing",
+                "status": "Not Met",
+                "comment": (
+                    "No reference list is present at the end of the submission. "
+                    "Some in-text citations appear but are not in Harvard format."
+                ),
+            },
+            {
+                "requirement": "Include an introduction and conclusion",
+                "status": "Partially Met",
+                "comment": (
+                    "An introduction is present but is only one sentence. "
+                    "No conclusion section was found in the submission."
+                ),
+            },
+        ],
         "rubricAlignment": [
             {
                 "criterion": "P1: Explain key concepts of information technology",
@@ -374,7 +440,7 @@ def call_llm(brief_text: str, rubric_text: str,
         ) from exc
 
     # Validate required keys
-    required_keys = {"mark", "grade", "www", "ebi", "feedForward", "rubricAlignment"}
+    required_keys = {"mark", "grade", "www", "ebi", "feedForward", "rubricAlignment", "briefAdherence"}
     missing = required_keys - set(data.keys())
     if missing:
         raise RuntimeError(f"LLM JSON is missing keys: {missing}")

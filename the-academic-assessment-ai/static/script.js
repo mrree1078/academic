@@ -129,15 +129,20 @@
                 </div>
             </div>
             <div class="card-body">
+                ${data.tasksAssessed ? `<div class="tasks-assessed"><strong>Tasks Assessed:</strong> ${esc(data.tasksAssessed)}</div>` : ""}
+                <div class="feedback-section">
+                    <h3>Brief Adherence Check</h3>
+                    ${briefAdherenceTable(data.briefAdherence || [])}
+                </div>
+                <div class="feedback-section">
+                    <h3>Rubric Alignment Audit</h3>
+                    ${rubricTable(data.rubricAlignment || [])}
+                </div>
                 ${feedbackSection("What Went Well (WWW)", data.www)}
                 ${feedbackSection("Even Better If (EBI)", data.ebi)}
                 <div class="feedback-section">
                     <h3>Feed Forward</h3>
                     <p>${esc(data.feedForward || "")}</p>
-                </div>
-                <div class="feedback-section">
-                    <h3>Rubric Alignment Audit</h3>
-                    ${rubricTable(data.rubricAlignment || [])}
                 </div>
             </div>
             <div class="card-footer">
@@ -194,6 +199,34 @@
                 <td class="score-cell ${cls}">${r.score} / ${max}</td>
                 <td class="evidence-cell">${esc(r.evidenceFound || "")}</td>
                 <td>${esc(r.criticalReasoning || "")}</td>
+            </tr>`;
+        }
+
+        html += "</tbody></table>";
+        return html;
+    }
+
+    // ── Brief adherence table ──────────────────────────────────────
+    function briefAdherenceTable(rows) {
+        if (rows.length === 0) return "<p>No brief adherence data.</p>";
+
+        let html = `<table class="rubric-table brief-table">
+            <thead><tr>
+                <th>Brief Requirement</th>
+                <th>Status</th>
+                <th>Comment</th>
+            </tr></thead><tbody>`;
+
+        for (const r of rows) {
+            const status = (r.status || "").toLowerCase();
+            let cls = "status-not-met";
+            if (status === "met") cls = "status-met";
+            else if (status.includes("partial")) cls = "status-partial";
+
+            html += `<tr>
+                <td>${esc(r.requirement)}</td>
+                <td class="status-cell ${cls}">${esc(r.status)}</td>
+                <td>${esc(r.comment || "")}</td>
             </tr>`;
         }
 

@@ -195,6 +195,19 @@ body {
 
 .evidence-cell { font-style: italic; color: var(--grey-600); }
 
+/* Tasks Assessed banner */
+.tasks-assessed {
+    background: var(--blue-light); color: var(--blue-dark);
+    padding: .6rem 1rem; border-radius: var(--radius);
+    font-size: .88rem; margin-bottom: 1.25rem;
+}
+
+/* Brief Adherence status cells */
+.status-cell { font-weight: 700; white-space: nowrap; }
+.status-met     { color: var(--green); }
+.status-partial { color: var(--amber); }
+.status-not-met { color: var(--red); }
+
 /* Download button */
 .card-footer {
     padding: .75rem 1.5rem; border-top: 1px solid var(--grey-100);
