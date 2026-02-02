@@ -60,39 +60,69 @@ SYSTEM_PROMPT = """
 You are an expert Academic Assessment AI, specialized in Level 3 (BTEC/T-Level) and Higher Education grading. You act as a 'Critical Pedagogical Auditor' and an 'External Quality Assurance' officer. Your goal is to be realistic, critical, and accurate. You are NOT to be overly generous.
 
 Phase 1: Context & Input Isolation
-- Analyze the Assignment Brief and the Rubric (The 'Gold Standard').
-- Incorporate 'Further Instructions' provided by the lecturer (e.g., 'focus on task 1a').
+- Read the <assignment_brief> carefully. This defines WHAT the student was asked to do -- the tasks, scenarios, word counts, format requirements, and learning objectives.
+- Read the <rubric> carefully. This defines HOW the work is marked -- the criteria, grade bands, and marks available. The rubric is the sole authority for scoring.
+- Read the <further_instructions> from the lecturer. These tell you WHICH section(s) of the rubric to assess.
+  * If further instructions name specific tasks, criteria, or sections (e.g., "only assess Task 1a", "focus on P1-P3 and M1", "Learning Outcome 2 only"), you MUST locate those exact sections in the rubric and ONLY assess the criteria that fall under them. Ignore all other criteria entirely.
+  * If no filter is given, assess ALL criteria found in the rubric.
 - Isolate the <student_submission> content. Do NOT conflate the requirements of the Brief with the actual content of the Submission.
 
-Phase 2: The Grading Framework & "Quote or Zero" Protocol
+Phase 2: Rubric Extraction (CRITICAL -- read the rubric, do not invent criteria)
+- You MUST parse the <rubric> document and locate the specific section(s) identified in Phase 1.
+- Extract EVERY assessment criterion from those section(s) EXACTLY as written in the rubric -- including the criterion ID (e.g., "P1", "M1", "D1", "1.1", "Task 1a"), its full description, and the marks or grade band available.
+- Use the rubric's OWN marking scheme:
+  * If numerical marks are given (e.g., /10, /20), use those exact numbers as maxScore.
+  * If the rubric uses Pass/Merit/Distinction bands without numbers, map: Not Achieved = 0, Pass = 1, Merit = 2, Distinction = 3 as maxScore 3.
+  * If the rubric uses both, capture both.
+- Do NOT invent, rename, merge, split, or paraphrase criteria. Copy them EXACTLY.
+- The rubricAlignment array MUST contain ONE entry per extracted criterion. No more, no less.
+
+Phase 3: Brief Adherence Check
+- Separately from the rubric, check whether the student has followed the requirements of the <assignment_brief>:
+  * Has the student addressed every task/question listed in the brief?
+  * Has the student followed the required format (report, presentation, essay, etc.)?
+  * Has the student met the word count or page requirements if specified?
+  * Has the student used the required scenario/context if one was given?
+  * Has the student included required sections (introduction, conclusion, references, etc.)?
+- For each brief requirement, state whether it was met, partially met, or not met, with evidence.
+
+Phase 4: The Grading Framework & "Quote or Zero" Protocol
 - Bloom's Taxonomy: Lower Tier (Recall/Understand) = Pass/Merit. Higher Tier (Analyze/Evaluate/Create) = Distinction.
 - The 70% Threshold: Distinction requires explicit critical analysis ('Why' & 'How'), contextual depth, and synthesis.
 - Strictness: Start from 0. Only award marks if explicit evidence is found.
-- "Quote or Zero": You cannot award a mark or claim a topic was discussed unless you can extract a direct quote or clear paraphrase from the <student_submission> to prove it. If the Rubric mentions a concept (e.g., GDPR), but the Student does not, the mark is 0.
+- "Quote or Zero": You cannot award a mark or claim a topic was discussed unless you can extract a direct quote or clear paraphrase from the <student_submission> to prove it. If the rubric criterion requires a concept (e.g., GDPR) but the student does not mention it, the score is 0.
 - Evidence Lock: Do not use outside knowledge. Strictly adhere to the provided documents.
-- SPaG: Check for Spelling, Punctuation, and Grammar. However, if the student indicates dyslexia (or if the quality of argument is high but spelling is poor), be lenient on spelling but strict on grammar and structure.
+- SPaG: Check for Spelling, Punctuation, and Grammar. If the student indicates dyslexia (or if argument quality is high but spelling is poor), be lenient on spelling but strict on grammar and structure.
 
-Phase 3: Mathematical Scoring
-- Extract the scoring system from the Rubric.
-- List every single criterion found in the rubric.
+Phase 5: Mathematical Scoring
+- Score ONLY the criteria extracted in Phase 2. Do not add extra criteria.
 - Assign a numerical score to each criterion based on evidence found.
-- Sum the total marks mathematically. Do not guess the total.
+- Sum the total marks mathematically. Calculate the percentage: (total scored / total available) * 100. Round to the nearest integer. Do not guess.
+- Derive the grade from the rubric's own grade boundaries if provided. Otherwise use: 0-39 = Fail, 40-54 = Pass, 55-69 = Merit, 70-100 = Distinction.
 
-Phase 4: Feedback Output Structure
+Phase 6: Feedback Output Structure
 Return the response in **strict JSON** format ONLY. Do not include any text outside the JSON object. Use the following schema:
 {
-  "mark": (Integer 0-100),
+  "mark": (Integer 0-100: the calculated percentage),
   "grade": (String, e.g., "Distinction", "Merit", "Pass", "Fail"),
-  "www": (Array of Strings: Specific strengths linked to the rubric),
-  "ebi": (Array of Strings: Constructive criticism focused on how to move to the next grade band),
+  "tasksAssessed": (String: which rubric section(s)/task(s) were assessed, e.g., "Task 1a, Task 1b" or "All criteria"),
+  "www": (Array of Strings: Specific strengths, each referencing the rubric criterion ID it relates to),
+  "ebi": (Array of Strings: Constructive criticism, each referencing the rubric criterion ID and what is needed for the next grade band),
   "feedForward": (String: Actionable steps for future assignments),
+  "briefAdherence": [
+    {
+      "requirement": (String: The specific requirement from the assignment brief),
+      "status": (String: "Met", "Partially Met", or "Not Met"),
+      "comment": (String: Brief explanation with evidence from the submission)
+    }
+  ],
   "rubricAlignment": [
     {
-      "criterion": (String: The specific rubric point),
-      "score": (Integer: Marks awarded for this point),
-      "maxScore": (Integer: Maximum marks available for this point),
-      "evidenceFound": (String: Direct quote or 'No evidence found'),
-      "criticalReasoning": (String: Why the mark was given/denied)
+      "criterion": (String: The EXACT criterion ID and name as written in the rubric),
+      "score": (Integer: Marks awarded for this criterion),
+      "maxScore": (Integer: Maximum marks available as stated in the rubric),
+      "evidenceFound": (String: Direct quote from the student submission, or 'No evidence found'),
+      "criticalReasoning": (String: Why the mark was given/denied, referencing what the rubric requires vs what the student provided)
     }
   ]
 }
@@ -183,31 +213,81 @@ def _save_temp(file_storage) -> str:
 # ---------------------------------------------------------------------------
 
 def mock_llm_response(student_name: str) -> dict:
-    """Return realistic dummy assessment data."""
+    """Return realistic dummy assessment data mirroring rubric-driven output."""
     return {
-        "mark": 54,
-        "grade": "Merit",
+        "mark": 47,
+        "grade": "Pass",
+        "tasksAssessed": "Task 1a, Task 1b (as specified in Further Instructions)",
         "www": [
-            "The submission demonstrates a clear understanding of the core terminology "
-            "as outlined in criterion 1.1.",
-            "Appropriate use of examples when discussing data protection principles.",
-            "Logical structure with clear headings that mirror the brief requirements.",
+            "P1: Clear definitions provided for key IT concepts including hardware, "
+            "software, and networking fundamentals.",
+            "P2: GDPR is identified and its purpose is stated correctly.",
+            "M1: Some valid examples of IT use in business are provided, showing "
+            "understanding beyond basic recall.",
         ],
         "ebi": [
-            "Critical analysis is surface-level. To achieve Distinction, you must explain "
-            "'why' and 'how' rather than simply describing concepts.",
-            "No evidence found for criterion 2.3 (impact of emerging technologies). "
-            "This entire section is missing from your submission.",
-            "Referencing is inconsistent -- several claims lack in-text citations.",
+            "P3: No evidence found for this criterion. You must discuss network "
+            "topologies as required by the rubric to achieve a Pass.",
+            "M2: To move from Pass to Merit, you need to compare different data "
+            "protection laws rather than just listing them.",
+            "D1: No critical analysis present. Distinction requires you to evaluate "
+            "'why' and 'how' IT impacts organisations with real-world case studies.",
+            "D2: No synthesis of emerging technologies. You must argue a position "
+            "using multiple sources to reach Distinction.",
         ],
         "feedForward": (
-            "For your next assignment, begin by mapping each rubric criterion to a "
-            "dedicated section in your work. Use the PEE (Point, Evidence, Explain) "
-            "chain to ensure every paragraph contains analysis, not just description."
+            "Map each rubric criterion (P1, P2, M1, D1, etc.) to a dedicated "
+            "section in your work. For Pass criteria, describe and define. For "
+            "Merit, compare and explain. For Distinction, evaluate and justify. "
+            "Use the PEE (Point, Evidence, Explain) chain in every paragraph."
         ),
+        "briefAdherence": [
+            {
+                "requirement": "Task 1a: Produce a report explaining key IT concepts",
+                "status": "Partially Met",
+                "comment": (
+                    "The student has written in report format with headings but "
+                    "has only covered hardware and software. Networking and "
+                    "operating systems, which are listed in the brief, are missing."
+                ),
+            },
+            {
+                "requirement": "Task 1b: Discuss data protection legislation relevant to a given scenario",
+                "status": "Partially Met",
+                "comment": (
+                    "GDPR is discussed but the student has not applied it to the "
+                    "scenario provided in the brief (healthcare setting). The brief "
+                    "specifically asks students to use 'Scenario B: NHS Trust'."
+                ),
+            },
+            {
+                "requirement": "Word count: 1500-2000 words",
+                "status": "Not Met",
+                "comment": (
+                    "Submission appears to be approximately 900 words, well below "
+                    "the minimum 1500-word requirement stated in the brief."
+                ),
+            },
+            {
+                "requirement": "Include a reference list using Harvard referencing",
+                "status": "Not Met",
+                "comment": (
+                    "No reference list is present at the end of the submission. "
+                    "Some in-text citations appear but are not in Harvard format."
+                ),
+            },
+            {
+                "requirement": "Include an introduction and conclusion",
+                "status": "Partially Met",
+                "comment": (
+                    "An introduction is present but is only one sentence. "
+                    "No conclusion section was found in the submission."
+                ),
+            },
+        ],
         "rubricAlignment": [
             {
-                "criterion": "1.1 Explain key concepts of IT",
+                "criterion": "P1: Explain key concepts of information technology",
                 "score": 8,
                 "maxScore": 10,
                 "evidenceFound": (
@@ -215,12 +295,14 @@ def mock_llm_response(student_name: str) -> dict:
                     "telecommunications to store, retrieve, and send information.\""
                 ),
                 "criticalReasoning": (
-                    "The student provides a clear definition but does not extend "
-                    "this into a contextual discussion of modern IT paradigms."
+                    "Rubric requires explanation of key IT concepts. The student "
+                    "provides clear definitions of hardware, software, and "
+                    "networking but does not cover all sub-topics listed in the "
+                    "rubric (operating systems omitted). 8/10 awarded."
                 ),
             },
             {
-                "criterion": "1.2 Discuss data protection legislation",
+                "criterion": "P2: Outline the principles of data protection legislation",
                 "score": 6,
                 "maxScore": 10,
                 "evidenceFound": (
@@ -228,40 +310,68 @@ def mock_llm_response(student_name: str) -> dict:
                     "of EU citizens.\""
                 ),
                 "criticalReasoning": (
-                    "Mentions GDPR but fails to analyse its practical implications "
-                    "for organisations. No mention of the Data Protection Act 2018."
+                    "Rubric requires outlining data protection principles. Student "
+                    "identifies GDPR but does not mention the Data Protection Act "
+                    "2018 or the role of the ICO, both listed in the rubric. 6/10."
                 ),
             },
             {
-                "criterion": "2.1 Analyze the impact of IT on business",
-                "score": 5,
+                "criterion": "P3: Describe network topologies and protocols",
+                "score": 0,
+                "maxScore": 10,
+                "evidenceFound": "No evidence found",
+                "criticalReasoning": (
+                    "Rubric requires description of network topologies (star, mesh, "
+                    "bus) and protocols (TCP/IP, HTTP). The student submission "
+                    "contains no discussion of this topic. 0/10 awarded."
+                ),
+            },
+            {
+                "criterion": "M1: Explain how IT supports business operations",
+                "score": 7,
                 "maxScore": 15,
                 "evidenceFound": (
-                    "\"IT helps businesses run more efficiently.\""
+                    "\"Businesses use cloud computing and email systems to "
+                    "improve daily operations and communication.\""
                 ),
                 "criticalReasoning": (
-                    "This is a vague, unsupported claim. No specific examples or "
-                    "case studies are provided. Analysis is absent."
+                    "Rubric requires explanation with examples. Student gives "
+                    "valid examples (cloud, email) but explanation is shallow -- "
+                    "does not explain HOW these improve operations in detail. "
+                    "Partial Merit level. 7/15."
                 ),
             },
             {
-                "criterion": "2.3 Evaluate emerging technologies",
+                "criterion": "M2: Compare data protection approaches across sectors",
                 "score": 0,
                 "maxScore": 15,
                 "evidenceFound": "No evidence found",
                 "criticalReasoning": (
-                    "The student submission contains no discussion of emerging "
-                    "technologies whatsoever. Full marks withheld."
+                    "Rubric requires comparison across sectors (healthcare, finance, "
+                    "education). No comparative analysis found in submission. 0/15."
                 ),
             },
             {
-                "criterion": "3.1 Present work with academic conventions",
-                "score": 5,
-                "maxScore": 10,
-                "evidenceFound": "N/A -- holistic criterion",
+                "criterion": "D1: Evaluate the impact of IT on a named organisation",
+                "score": 0,
+                "maxScore": 20,
+                "evidenceFound": "No evidence found",
                 "criticalReasoning": (
-                    "Headings are present but referencing is inconsistent. "
-                    "Harvard style attempted but not applied uniformly."
+                    "Rubric requires critical evaluation with a named case study. "
+                    "Student provides only generic statements ('IT helps businesses "
+                    "run more efficiently') with no named organisation, no sources, "
+                    "and no evaluative argument. 0/20 awarded."
+                ),
+            },
+            {
+                "criterion": "D2: Evaluate emerging technologies and their future impact",
+                "score": 0,
+                "maxScore": 20,
+                "evidenceFound": "No evidence found",
+                "criticalReasoning": (
+                    "Rubric requires evaluation of emerging technologies (AI, IoT, "
+                    "blockchain) with synthesised argument. No discussion found "
+                    "in the student submission whatsoever. 0/20 awarded."
                 ),
             },
         ],
@@ -330,7 +440,7 @@ def call_llm(brief_text: str, rubric_text: str,
         ) from exc
 
     # Validate required keys
-    required_keys = {"mark", "grade", "www", "ebi", "feedForward", "rubricAlignment"}
+    required_keys = {"mark", "grade", "www", "ebi", "feedForward", "rubricAlignment", "briefAdherence"}
     missing = required_keys - set(data.keys())
     if missing:
         raise RuntimeError(f"LLM JSON is missing keys: {missing}")
